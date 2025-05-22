@@ -102,7 +102,7 @@ kubesphere-ai-assistant/
 需要配置env才能运行
 env
 # LLM API Keys
-QWEN_API_KEY=sk-c1c95e661b1443f78f10c86fe570585e
+QWEN_API_KEY=qwen_key
 
 # LangChain 配置
 LANGCHAIN_TRACING_V2=true
