@@ -4,9 +4,6 @@ import os
 import sys
 from dotenv import load_dotenv
 
-os.environ["LANGCHAIN_TRACING_V2"] = "true"
-os.environ["LANGCHAIN_API_KEY"] = getpass.getpass()
-
 
 # 添加项目根目录到 Python 路径
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))

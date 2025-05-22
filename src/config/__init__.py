@@ -19,6 +19,10 @@ MAX_CONTEXT_CHUNKS = int(os.environ.get("MAX_CONTEXT_CHUNKS", DEFAULT_SETTINGS["
 TEMPERATURE = float(os.environ.get("TEMPERATURE", DEFAULT_SETTINGS["temperature"]))
 LOG_LEVEL = os.environ.get("LOG_LEVEL", DEFAULT_SETTINGS["log_level"])
 
+LANGCHAIN_TRACING_V2 = os.environ.get("LANGCHAIN_TRACING_V2", "false").lower() == "true"
+LANGCHAIN_ENDPOINT = os.environ.get("LANGCHAIN_ENDPOINT", "http://localhost:8000")
+LANGCHAIN_API_KEY = os.environ.get("LANGCHAIN_API_KEY", "your_langchain_api_key")
+
 MAX_ITERATIONS = 7
 
 __all__ = [

@@ -197,7 +197,7 @@ if __name__ == "__main__":
         qwen_client = LLMService(
             # provider="qwen",
             model_name="qwen-plus",  # 根据实际可用的模型名称调整
-            qwen_api_key="sk-c1c95e661b1443f78f10c86fe570585e"  # 或设置环境变量QWEN_API_KEY
+            qwen_api_key="your_QWEN_API_KEY"  # 或设置环境变量QWEN_API_KEY
         )
         response = qwen_client.generate(
             prompt="请简要介绍一下Python的优势",

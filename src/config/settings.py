@@ -10,7 +10,7 @@ DEFAULT_SETTINGS = {
 
     "openai_api_key": "",
     "anthropic_api_key": "",
-    "qwen_api_key": "sk-c1c95e661b1443f78f10c86fe570585e",
+    "qwen_api_key": "your_QWEN_API_KEY",
     "glm_api_key": "",
     
     # Milvus配置

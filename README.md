@@ -1,6 +1,11 @@
 # kubesphere-ai-assistant
 
 
+```markdown
+os.environ["LANGCHAIN_TRACING_V2"] = "true"
+os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
+os.environ["LANGCHAIN_API_KEY"] = "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"  # 替换为您的 API 密钥
+```
 
 ```markdown
 kubesphere-ai-assistant/
