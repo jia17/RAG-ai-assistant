@@ -2,12 +2,6 @@
 
 
 ```markdown
-os.environ["LANGCHAIN_TRACING_V2"] = "true"
-os.environ["LANGCHAIN_ENDPOINT"] = "https://api.smith.langchain.com"
-os.environ["LANGCHAIN_API_KEY"] = "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"  # 替换为您的 API 密钥
-```
-
-```markdown
 kubesphere-ai-assistant/
 │
 ├── README.md                      # 项目说明文档
@@ -100,4 +94,19 @@ kubesphere-ai-assistant/
 │   ├── 02_embedding_testing.ipynb    # 测试不同嵌入模型的效果
 │   ├── 03_prompt_engineering.ipynb   # Prompt 调优实验
 │   └── 04_rag_evaluation.ipynb       # RAG 流程评估
+```
+
+
+
+```markdown
+需要配置env才能运行
+env
+# LLM API Keys
+QWEN_API_KEY=sk-c1c95e661b1443f78f10c86fe570585e
+
+# LangChain 配置
+LANGCHAIN_TRACING_V2=true
+LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
+LANGCHAIN_API_KEY=lengchain_key
+
 ```
