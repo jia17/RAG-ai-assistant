@@ -1,0 +1,13 @@
+python-dotenv
+langchain
+langchain-experimental
+langgraph
+langchain-anthropic
+langchain-openai
+langchain-milvus
+langchain-community
+langchain-core
+pymilvus
+sentence-transformers
+numpy
+rank_bm25

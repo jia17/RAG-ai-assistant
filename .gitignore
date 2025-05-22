@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables
+.env
+
+# IDE specific
+.vscode/
+.idea/
+
+# Data files (if large or generated)
+data/raw/
+data/processed/
+*.db
+*.sqlite3
