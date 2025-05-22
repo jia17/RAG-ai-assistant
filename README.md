@@ -1,21 +1,19 @@
 # kubesphere-ai-assistant
 
-Project description here.
 
 
-
-
+```markdown
 kubesphere-ai-assistant/
 │
 ├── README.md                      # 项目说明文档
 ├── requirements.txt               # 项目依赖
 ├── .env.example                   # 环境变量示例
 ├── .gitignore                     # Git忽略文件
-├── main.py                           # 项目的命令行入口点 (例如，启动一个交互式聊天或API服务)
+├── main.py                        # 项目的命令行入口点 (例如，启动一个交互式聊天或API服务)
 │
 ├── src/                           # 源代码目录
 │   ├── __init__.py
-│   ├── app.py                        # LangGraph 应用的主要构建和编译逻辑 (StateGraph 定义)
+│   ├── app.py                     # LangGraph 应用的主要构建和编译逻辑 (StateGraph 定义)
 │   │
 │   ├── config/                    # 配置文件
 │   │   ├── __init__.py
@@ -27,14 +25,14 @@ kubesphere-ai-assistant/
 │   │   ├── states.py              # 状态定义
 │   │   ├── nodes/                 # 节点实现
 │   │   │   ├── __init__.py
-    │   │   ├── query_analyser.py         # 查询分析与预处理器
-    │   │   ├── adaptive_retriever.py     # 自适应混合检索器 (或 retriever.py)
-    │   │   ├── filter_validator.py       # 过滤与验证器
-    │   │   ├── generator.py              # 答案生成器
-    │   │   ├── answer_critique.py        # 答案评估与校验器
-    │   │   ├── query_rewriter.py         # 查询重写器
-    │   │   ├── web_search_node.py        # Web 搜索增强器 (如果实现)
-    │   │   └── context_manager_node.py   # 上下文管理器 (PDF 3.2节末尾 & 6.1节)
+│   │   │   ├── query_analyser.py         # 查询分析与预处理器
+│   │   │   ├── adaptive_retriever.py     # 自适应混合检索器 (或 retriever.py)
+│   │   │   ├── filter_validator.py       # 过滤与验证器
+│   │   │   ├── generator.py              # 答案生成器
+│   │   │   ├── answer_critique.py        # 答案评估与校验器
+│   │   │   ├── query_rewriter.py         # 查询重写器
+│   │   │   ├── web_search_node.py        # Web 搜索增强器 (如果实现)
+│   │   │   └── context_manager_node.py   # 上下文管理器 (PDF 3.2节末尾 & 6.1节)
 │   │   │
 │   │   └── graph.py               # 状态图定义与边逻辑
 │   │
@@ -55,8 +53,7 @@ kubesphere-ai-assistant/
 │   │   ├── __init__.py
 │   │   ├── system_prompts.py         # 定义核心系统提示，如 KubeSphere AI 助手角色
 │   │   └── task_prompts.py           # 定义特定任务的提示，如查询分析、答案评估等
-
-
+│   │
 │   ├── utils/                     # 工具函数
 │   │   ├── __init__.py
 │   │   ├── logger.py              # 日志工具
@@ -98,3 +95,4 @@ kubesphere-ai-assistant/
 │   ├── 02_embedding_testing.ipynb    # 测试不同嵌入模型的效果
 │   ├── 03_prompt_engineering.ipynb   # Prompt 调优实验
 │   └── 04_rag_evaluation.ipynb       # RAG 流程评估
+```
