@@ -30,6 +30,14 @@ DEFAULT_SETTINGS = {
     # 文档处理配置
     "chunk_size": 1000,
     "chunk_overlap": 200,
+
+    # 数据库配置
+    "database_url": "sqlite:///./data/conversation_history.db",  # 默认使用SQLite
+    "database_pool_size": 5,
+    "database_max_overflow": 10,
+    "database_pool_timeout": 30,
+    "database_pool_recycle": -1,
+    "database_echo": False,  # 设为True可以看到SQL日志
 }
 
 # 模型映射配置

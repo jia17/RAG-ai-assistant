@@ -2,6 +2,7 @@
 生成答案节点
 """
 import json
+import traceback
 from typing import Dict, Any
 from typing_extensions import TypedDict, NotRequired
 from langgraph.graph import StateGraph
@@ -9,6 +10,7 @@ from datetime import datetime
 from src.models import default_llm
 from src.prompts import ANSWER_GENERATION_PROMPT
 from src.utils.logger import get_logger
+from src.storage import get_database_manager
 from ..states import KubeSphereAgentState
 from src.prompts import SYSTEM_PROMPT
 
@@ -108,6 +110,73 @@ def generate_answer(state: KubeSphereAgentState) -> Dict[str, Any]:
             "needs_web_search": needs_web_search,
             "last_agent_action": "query_rewrite"
         }
+
+        # 保存生成的答案到数据库
+        conversation_id = state.get("context", {}).get("conversation_id")
+        if conversation_id and generated_answer and generated_answer.strip():
+            db_manager = get_database_manager()
+            
+            try:
+                # 提取增强信息
+                generation_result = state.get("generation", {})
+                retrieval_result = state.get("retrieval_result", {})
+                filtering_result = state.get("filtering", {})
+                evaluation_result = state.get("evaluation", {})
+                
+                # 计算置信度（从多个来源）
+                confidence_score = None
+                if evaluation_result.get("evaluation_scores"):
+                    eval_scores = evaluation_result["evaluation_scores"]
+                    if isinstance(eval_scores, dict) and "score" in eval_scores:
+                        confidence_score = eval_scores["score"]
+                
+                # 检索方法
+                retrieval_method = retrieval_result.get("retrieval_method")
+                
+                # 文档块数量
+                filtered_chunks_count = 0
+                if filtering_result.get("filtered_chunks"):
+                    filtered_chunks_count = len(filtering_result["filtered_chunks"])
+                
+                # 迭代次数
+                iteration_count = state.get("workflow", {}).get("iteration_count", 0)
+                
+                # 保存助手消息
+                success = db_manager.save_conversation_message(
+                    conversation_id=conversation_id,
+                    role="assistant",
+                    content=generated_answer,
+                    confidence_score=confidence_score,
+                    retrieval_method=retrieval_method,
+                    filtered_chunks_count=filtered_chunks_count,
+                    iteration_count=iteration_count,
+                    metadata={
+                        "timestamp": datetime.now().isoformat(),
+                        "sources": generation_result.get("sources", []),
+                        "generation_metadata": {
+                            "retrieval_method": retrieval_method,
+                            "filtered_chunks_count": filtered_chunks_count,
+                            "confidence_score": confidence_score,
+                            "evaluation_scores": evaluation_result.get("evaluation_scores"),
+                            "chunks_info": [
+                                {
+                                    "source": chunk.get("metadata", {}).get("source", "未知"),
+                                    "score": chunk.get("score", 0)
+                                }
+                                for chunk in filtered_chunks[:3]  # 只保存前3个块的信息
+                            ] if filtered_chunks else []
+                        }
+                    }
+                )
+                
+                if success:
+                    logger.info(f"保存助手消息成功: 置信度={confidence_score}, 检索方法={retrieval_method}, 文档块={filtered_chunks_count}")
+                else:
+                    logger.warning("保存助手消息失败")
+                    
+            except Exception as e:
+                logger.warning(f"保存助手消息时出错: {e}")
+                logger.debug(f"保存助手消息详细错误: {traceback.format_exc()}")
 
         # 返回要更新的状态部分
         return {

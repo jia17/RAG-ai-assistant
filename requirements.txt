@@ -11,3 +11,8 @@ pymilvus
 sentence-transformers
 numpy
 rank_bm25
+# 数据库持久化依赖
+sqlalchemy>=2.0.0
+alembic
+psycopg2-binary
+aiosqlite

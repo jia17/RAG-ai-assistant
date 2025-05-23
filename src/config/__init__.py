@@ -23,6 +23,14 @@ LANGCHAIN_TRACING_V2 = os.environ.get("LANGCHAIN_TRACING_V2", "false").lower() =
 LANGCHAIN_ENDPOINT = os.environ.get("LANGCHAIN_ENDPOINT", "http://localhost:8000")
 LANGCHAIN_API_KEY = os.environ.get("LANGCHAIN_API_KEY", "your_langchain_api_key")
 
+# 数据库配置
+DATABASE_URL = os.environ.get("DATABASE_URL", DEFAULT_SETTINGS["database_url"])
+DATABASE_POOL_SIZE = int(os.environ.get("DATABASE_POOL_SIZE", DEFAULT_SETTINGS["database_pool_size"]))
+DATABASE_MAX_OVERFLOW = int(os.environ.get("DATABASE_MAX_OVERFLOW", DEFAULT_SETTINGS["database_max_overflow"]))
+DATABASE_POOL_TIMEOUT = int(os.environ.get("DATABASE_POOL_TIMEOUT", DEFAULT_SETTINGS["database_pool_timeout"]))
+DATABASE_POOL_RECYCLE = int(os.environ.get("DATABASE_POOL_RECYCLE", DEFAULT_SETTINGS["database_pool_recycle"]))
+DATABASE_ECHO = os.environ.get("DATABASE_ECHO", str(DEFAULT_SETTINGS["database_echo"])).lower() == "true"
+
 MAX_ITERATIONS = 7
 
 __all__ = [
@@ -38,5 +46,14 @@ __all__ = [
     "MAX_CONTEXT_CHUNKS",
     "TEMPERATURE",
     "LOG_LEVEL",
-    "DEFAULT_SETTINGS"
+    "DEFAULT_SETTINGS",
+    "LANGCHAIN_TRACING_V2",
+    "LANGCHAIN_ENDPOINT",
+    "LANGCHAIN_API_KEY",
+    "DATABASE_URL",
+    "DATABASE_POOL_SIZE",
+    "DATABASE_MAX_OVERFLOW",
+    "DATABASE_POOL_TIMEOUT",
+    "DATABASE_POOL_RECYCLE",
+    "DATABASE_ECHO"
 ]

@@ -1,18 +1,19 @@
 """
-上下文管理节点 - 处理多轮对话的状态管理，使用LangGraph标准检查点机制
+上下文管理节点 - 处理多轮对话的状态管理，使用数据库持久化
 """
 
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 import uuid
-from src.utils.logger import get_logger
-from langgraph.checkpoint.sqlite import SqliteSaver
-from langgraph.checkpoint.memory import MemorySaver
 import os
+
+from langgraph.checkpoint.memory import MemorySaver
+from src.utils.logger import get_logger
+from src.storage import get_database_checkpointer, get_database_manager
 
 logger = get_logger(__name__)
 
-# 全局变量，用于存储检查点配置
+# 全局检查点保存器实例
 checkpointer = None
 
 def manage_context(state: Dict[str, Any]) -> Dict[str, Any]:
@@ -29,11 +30,16 @@ def manage_context(state: Dict[str, Any]) -> Dict[str, Any]:
     query = state["original_query"]
     answer = state.get("generation", {}).get("answer", "")
     
+    # 获取分析后的查询和其他分析结果
+    analyzed_query = state.get("analyzed_query", query)
+    analysis_result = state.get("analysis", {})
+    
     # 初始化上下文
     if "context" not in state:
         state["context"] = {
             "conversation_history": [],
-            "current_query": query
+            "current_query": query,
+            "conversation_id": state.get("context", {}).get("conversation_id") or str(uuid.uuid4())
         }
     
     # 初始化工作流控制状态
@@ -49,106 +55,141 @@ def manage_context(state: Dict[str, Any]) -> Dict[str, Any]:
             state["workflow"]["iteration_count"] = 0
             state["workflow"]["query_rewrite_count"] = 0
     
+    # 获取数据库管理器
+    db_manager = get_database_manager()
+    conversation_id = state["context"]["conversation_id"]
+    
     # 获取现有对话历史
     conversation_history = state["context"].get("conversation_history", [])
     
-    # 添加用户消息
+    # 如果没有历史记录，尝试从数据库加载（仅查询操作）
+    if not conversation_history:
+        try:
+            db_history = db_manager.get_conversation_history(conversation_id)
+            conversation_history = []
+            for msg in db_history:
+                # 构建增强的历史记录
+                history_item = {"role": msg["role"], "content": msg["content"]}
+                
+                # 如果有分析信息，添加到历史记录中
+                if msg.get("analyzed_query"):
+                    history_item["analyzed_query"] = msg["analyzed_query"]
+                if msg.get("intent"):
+                    history_item["analysis"] = {"intent": msg["intent"]}
+                if msg.get("metadata"):
+                    metadata = msg["metadata"]
+                    if msg["role"] == "assistant" and metadata.get("sources"):
+                        history_item["sources"] = metadata["sources"]
+                
+                conversation_history.append(history_item)
+            logger.debug(f"从数据库加载增强的对话历史: {len(conversation_history)} 条消息")
+        except Exception as e:
+            logger.warning(f"加载对话历史失败: {e}")
+            conversation_history = []
+    
+    # 更新对话历史（仅在内存中）
+    # 添加用户消息（如果不是重复的）
     user_message = {
         "role": "user",
         "content": query
     }
-    conversation_history.append(user_message)
+    
+    # 为用户消息添加分析信息
+    if analyzed_query and analyzed_query != query:
+        user_message["analyzed_query"] = analyzed_query
+    if analysis_result:
+        user_message["analysis"] = analysis_result
+    
+    # 检查是否为新消息
+    is_new_message = True
+    if conversation_history:
+        last_message = conversation_history[-1]
+        if last_message.get("role") == "user" and last_message.get("content") == query:
+            is_new_message = False
+    
+    if is_new_message:
+        conversation_history.append(user_message)
+        logger.debug(f"添加用户消息到内存历史: {query[:50]}...")
     
     # 如果有答案，添加助手消息
-    if answer:
+    if answer and answer.strip():
         assistant_message = {
             "role": "assistant",
             "content": answer
         }
-        conversation_history.append(assistant_message)
+        
+        # 为助手消息添加生成信息
+        generation_info = state.get("generation", {})
+        if generation_info.get("sources"):
+            assistant_message["sources"] = generation_info["sources"]
+        
+        # 检查是否为新答案
+        is_new_answer = True
+        if conversation_history:
+            last_message = conversation_history[-1]
+            if (last_message.get("role") == "assistant" and 
+                last_message.get("content") == answer):
+                is_new_answer = False
+        
+        if is_new_answer:
+            conversation_history.append(assistant_message)
+            logger.debug(f"添加助手消息到内存历史: {answer[:50]}...")
     
-    # 更新状态
+    # 更新状态（主要状态保存由DatabaseCheckpointer和专门的保存节点负责）
+    updated_context = {
+        "conversation_id": conversation_id,
+        "conversation_history": conversation_history,
+        "current_query": query,
+        "current_answer": answer
+    }
+    
     return {
-        "context": {
-            "conversation_history": conversation_history,
-            "current_query": query,
-            "current_answer": answer
-        }
+        "context": updated_context
     }
 
-def setup_checkpointer(directory_path: str) -> None:
+
+def setup_checkpointer(use_database: bool = True) -> None:
     """设置检查点机制进行状态持久化"""
-    print(f"设置对话状态持久化: {directory_path}")
-
     global checkpointer
+    
     try:
-        # 确保目录存在
-        os.makedirs(directory_path, exist_ok=True)
-        
-        # 根据路径选择合适的保存器
-        if directory_path == ":memory:":
-            # 使用 with 语句正确获取 SqliteSaver 实例
-            # with SqliteSaver.from_conn_string(":memory:") as saver:
-            #     checkpointer = saver
-            
-            checkpointer = MemorySaver()
-            print("使用内存中的SQLite保存器")
-        elif directory_path.endswith(".db") or directory_path.endswith(".sqlite"):
-            # 使用 with 语句正确获取 SqliteSaver 实例
-            with SqliteSaver.from_conn_string(f"sqlite:///{directory_path}") as saver:
-                checkpointer = saver
-            print(f"使用SQLite保存器: {directory_path}")
+        if use_database:
+            # 使用改进后的数据库检查点保存器
+            checkpointer = get_database_checkpointer()
+            logger.info("已启用数据库状态持久化（DatabaseCheckpointer）")
         else:
-            # 使用文件路径
-            db_path = f"{directory_path}/conversations.db"
-            # 使用 with 语句正确获取 SqliteSaver 实例
-            with SqliteSaver.from_conn_string(f"sqlite:///{db_path}") as saver:
-                checkpointer = saver
-            print(f"使用SQLite保存器: {db_path}")
-        
-        print(f"已设置对话状态持久化: {directory_path}")
-    except Exception as e:
-        print(f"设置持久化保存器失败: {e}")
-        checkpointer = None
-
-
-# 测试检查点机制 TODO:持久化历史
-# def test_checkpointer():
-#     """测试检查点机制是否正常工作"""
-#     if not checkpointer:
-#         print("检查点机制未设置")
-#         return
-    
-#     test_key = "test_conversation_id"
-#     test_data = {"test": "data", "timestamp": str(datetime.now())}
-    
-#     try:
-#         # 保存测试数据
-#         checkpointer.put(test_key, test_data)
-#         print(f"已保存测试数据: {test_key}")
-        
-#         # 读取测试数据
-#         retrieved_data = checkpointer.get(test_key)
-#         print(f"已读取测试数据: {retrieved_data}")
-        
-#         # 验证数据
-#         if retrieved_data == test_data:
-#             print("检查点机制工作正常")
-#         else:
-#             print("检查点机制数据不匹配")
+            # 使用内存检查点保存器（兼容性选项）
+            checkpointer = MemorySaver()
+            logger.info("已启用内存状态持久化")
             
-#         # 清理测试数据
-#         checkpointer.delete(test_key)
-#         print("已清理测试数据")
+    except Exception as e:
+        logger.error(f"设置检查点保存器失败: {e}")
+        # 回退到内存保存器
+        checkpointer = MemorySaver()
+        logger.warning("回退到内存状态持久化")
+
+
+def cleanup_old_conversations(days_to_keep: int = 30) -> int:
+    """清理旧的对话记录
+    
+    Args:
+        days_to_keep: 保留的天数
         
-#     except Exception as e:
-#         print(f"测试检查点机制失败: {e}")
+    Returns:
+        删除的记录数
+    """
+    try:
+        db_manager = get_database_manager()
+        deleted_count = db_manager.cleanup_old_conversations(days_to_keep)
+        logger.info(f"清理完成，删除了 {deleted_count} 条旧记录")
+        return deleted_count
+    except Exception as e:
+        logger.error(f"清理旧对话记录失败: {e}")
+        return 0
 
-# 在设置完检查点后调用测试
 
-# 设置状态持久化  TODO: 这里可以使用SQLite持久化
-CHECKPOINT_DIR = os.environ.get("CHECKPOINT_DIR", ":memory:")
-os.makedirs(CHECKPOINT_DIR, exist_ok=True)
-setup_checkpointer(CHECKPOINT_DIR)
-# test_checkpointer()
+# 初始化检查点保存器
+# 检查环境变量决定是否使用数据库持久化
+USE_DATABASE_PERSISTENCE = os.environ.get("USE_DATABASE_PERSISTENCE", "true").lower() == "true"
+setup_checkpointer(USE_DATABASE_PERSISTENCE)
 

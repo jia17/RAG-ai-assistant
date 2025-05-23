@@ -134,7 +134,7 @@ CONTEXT_FILTERING_PROMPT = """评估检索到的上下文片段与用户查询�
 片段是否是最新的、适用于用户可能使用的KubeSphere版本？
 以JSON格式返回评估结果:
 
-复制
+
 {
   "relevance_score": 0-10,
   "contains_answer": true/false,

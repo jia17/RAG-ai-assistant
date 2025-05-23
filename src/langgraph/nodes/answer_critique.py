@@ -1,8 +1,10 @@
 """
 答案评估节点
 """
-from typing import Dict, Any
+import re
 import json
+from typing import Dict, Any
+
 from src.models import default_llm
 from src.prompts import ANSWER_EVALUATION_PROMPT, SYSTEM_PROMPT
 from src.utils.logger import get_logger
@@ -59,7 +61,6 @@ def evaluate_answer(state: KubeSphereAgentState) -> Dict[str, Any]:
         try:
             # 尝试从文本中提取JSON
             json_pattern = r'```(?:json)?\s*([\s\S]*?)\s*```'
-            import re
             matches = re.findall(json_pattern, critique_text)
             
             if matches:
