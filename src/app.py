@@ -66,14 +66,6 @@ def process_query(
     """
     app = create_app()
     
-    # 生成或使用提供的conversation_id - 确保格式正确
-    if conversation_id is None:
-        conversation_id = str(uuid.uuid4())
-    elif not conversation_id or len(conversation_id) < 8:
-        # 如果conversation_id格式不正确，生成新的
-        logger.warning(f"conversation_id格式不正确: {conversation_id}, 生成新的")
-        conversation_id = str(uuid.uuid4())
-    
     logger.info(f"处理查询，conversation_id: {conversation_id[:8]}...")
     
     # 尝试从数据库加载之前的状态
@@ -183,14 +175,7 @@ def process_query(
     # 提取答案和对话ID
     answer = ""
     if result:
-        # 尝试从不同的可能位置获取答案
-        if isinstance(result, dict):
-            generation = result.get("generation", {})
-            if isinstance(generation, dict):
-                answer = generation.get("answer", "")
-            
-            if not answer:
-                answer = result.get("answer", "")
+        answer = result.get("answer", "")
         
         # 确保返回对话ID
         context = result.get("context", {})
@@ -204,23 +189,23 @@ def process_query(
         answer = "抱歉，我无法回答这个问题。"
     
     # 保存最终状态到数据库（作为备份）
-    try:
-        if result and isinstance(result, dict):
-            # 保存简化的状态信息作为索引
-            success = db_manager.save_conversation_state(
-                conversation_id=conversation_id,
-                state_data={"app_backup": True, "simplified_state": {
-                    "last_query": query,
-                    "last_answer": answer,
-                    "timestamp": datetime.now().isoformat()
-                }},
-                current_query=query,
-                latest_answer=answer
-            )
-            if success:
-                logger.debug(f"保存状态索引成功: {conversation_id[:8]}...")
-    except Exception as e:
-        logger.debug(f"保存状态索引失败（不影响主流程）: {e}")
+    # try:
+    #     if result and isinstance(result, dict):
+    #         # 保存简化的状态信息作为索引
+    #         success = db_manager.save_conversation_state(
+    #             conversation_id=conversation_id,
+    #             state_data={"app_backup": True, "simplified_state": {
+    #                 "last_query": query,
+    #                 "last_answer": answer,
+    #                 "timestamp": datetime.now().isoformat()
+    #             }},
+    #             current_query=query,
+    #             latest_answer=answer
+    #         )
+    #         if success:
+    #             logger.debug(f"保存状态索引成功: {conversation_id[:8]}...")
+    # except Exception as e:
+    #     logger.debug(f"保存状态索引失败（不影响主流程）: {e}")
     
     return {
         "query": query,
