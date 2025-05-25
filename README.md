@@ -1,8 +1,8 @@
-# kubesphere-ai-assistant
+# RAG-ai-assistant
 
 
 ```markdown
-kubesphere-ai-assistant/
+RAG-ai-assistant/
 │
 ├── README.md                      # 项目说明文档
 ├── requirements.txt               # 项目依赖
