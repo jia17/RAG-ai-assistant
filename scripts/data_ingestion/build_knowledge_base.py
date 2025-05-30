@@ -7,7 +7,7 @@ import logging
 import os
 from datetime import datetime
 
-from src.knowledge_base.document_splitter import DocumentSplitter
+from src.knowledge_base.markdown_splitter import MarkdownSplitter
 from src.models.embedding_service import EmbeddingService
 from src.knowledge_base.data_processor import DataProcessor
 
@@ -45,7 +45,7 @@ def main():
         os.makedirs(args.output_dir, exist_ok=True)
         
         # 初始化组件
-        splitter = DocumentSplitter(
+        splitter = MarkdownSplitter(
             chunk_size=args.chunk_size,
             chunk_overlap=args.chunk_overlap
         )

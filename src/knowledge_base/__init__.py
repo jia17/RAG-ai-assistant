@@ -1,9 +1,13 @@
 """
-知识库模块 - 提供文档处理、嵌入和向量存储功能
+知识库管理模块
 """
 
-from .markdown_splitter import MarkdownSplitter
-from src.models.embedding_service import EmbeddingService
 from .data_processor import DataProcessor
+from .markdown_splitter import MarkdownSplitter
+from .vector_store import VectorStore
 
-__all__ = ["MarkdownSplitter", "EmbeddingService", "DataProcessor"]
+__all__ = [
+    'DataProcessor',
+    'MarkdownSplitter', 
+    'VectorStore'
+]
