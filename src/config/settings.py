@@ -18,6 +18,23 @@ DEFAULT_SETTINGS = {
     "milvus_port": 19530,
     "milvus_collection": "kubesphere_docs",
     
+    # Milvus连接重试配置
+    "milvus_max_retries": 5,
+    "milvus_initial_delay": 1.0,
+    "milvus_max_delay": 60.0,
+    "milvus_backoff_factor": 2.0,
+    "milvus_connection_timeout": 10.0,
+    "milvus_health_check_interval": 30,
+    
+    # Milvus搜索优化配置
+    "milvus_default_metric_type": "COSINE",
+    "milvus_consistency_level": "Strong",
+    "milvus_search_timeout": 30,
+    "milvus_small_dataset_threshold": 10000,
+    "milvus_medium_dataset_threshold": 100000,
+    "milvus_enable_search_optimization": True,
+    "milvus_auto_index_optimization": True,
+    
     # RAG配置
     "max_context_chunks": 10,
     "temperature": 0.2,

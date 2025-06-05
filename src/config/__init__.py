@@ -15,6 +15,24 @@ GLM_API_KEY = os.environ.get("GLM_API_KEY", DEFAULT_SETTINGS.get("glm_api_key", 
 MILVUS_HOST = os.environ.get("MILVUS_HOST", DEFAULT_SETTINGS["milvus_host"])
 MILVUS_PORT = int(os.environ.get("MILVUS_PORT", DEFAULT_SETTINGS["milvus_port"]))
 MILVUS_COLLECTION = os.environ.get("MILVUS_COLLECTION", DEFAULT_SETTINGS["milvus_collection"])
+
+# Milvus连接重试配置
+MILVUS_MAX_RETRIES = int(os.environ.get("MILVUS_MAX_RETRIES", DEFAULT_SETTINGS["milvus_max_retries"]))
+MILVUS_INITIAL_DELAY = float(os.environ.get("MILVUS_INITIAL_DELAY", DEFAULT_SETTINGS["milvus_initial_delay"]))
+MILVUS_MAX_DELAY = float(os.environ.get("MILVUS_MAX_DELAY", DEFAULT_SETTINGS["milvus_max_delay"]))
+MILVUS_BACKOFF_FACTOR = float(os.environ.get("MILVUS_BACKOFF_FACTOR", DEFAULT_SETTINGS["milvus_backoff_factor"]))
+MILVUS_CONNECTION_TIMEOUT = float(os.environ.get("MILVUS_CONNECTION_TIMEOUT", DEFAULT_SETTINGS["milvus_connection_timeout"]))
+MILVUS_HEALTH_CHECK_INTERVAL = int(os.environ.get("MILVUS_HEALTH_CHECK_INTERVAL", DEFAULT_SETTINGS["milvus_health_check_interval"]))
+
+# Milvus搜索优化配置
+MILVUS_DEFAULT_METRIC_TYPE = os.environ.get("MILVUS_DEFAULT_METRIC_TYPE", DEFAULT_SETTINGS["milvus_default_metric_type"])
+MILVUS_CONSISTENCY_LEVEL = os.environ.get("MILVUS_CONSISTENCY_LEVEL", DEFAULT_SETTINGS["milvus_consistency_level"])
+MILVUS_SEARCH_TIMEOUT = int(os.environ.get("MILVUS_SEARCH_TIMEOUT", DEFAULT_SETTINGS["milvus_search_timeout"]))
+MILVUS_SMALL_DATASET_THRESHOLD = int(os.environ.get("MILVUS_SMALL_DATASET_THRESHOLD", DEFAULT_SETTINGS["milvus_small_dataset_threshold"]))
+MILVUS_MEDIUM_DATASET_THRESHOLD = int(os.environ.get("MILVUS_MEDIUM_DATASET_THRESHOLD", DEFAULT_SETTINGS["milvus_medium_dataset_threshold"]))
+MILVUS_ENABLE_SEARCH_OPTIMIZATION = os.environ.get("MILVUS_ENABLE_SEARCH_OPTIMIZATION", str(DEFAULT_SETTINGS["milvus_enable_search_optimization"])).lower() == "true"
+MILVUS_AUTO_INDEX_OPTIMIZATION = os.environ.get("MILVUS_AUTO_INDEX_OPTIMIZATION", str(DEFAULT_SETTINGS["milvus_auto_index_optimization"])).lower() == "true"
+
 MAX_CONTEXT_CHUNKS = int(os.environ.get("MAX_CONTEXT_CHUNKS", DEFAULT_SETTINGS["max_context_chunks"]))
 TEMPERATURE = float(os.environ.get("TEMPERATURE", DEFAULT_SETTINGS["temperature"]))
 LOG_LEVEL = os.environ.get("LOG_LEVEL", DEFAULT_SETTINGS["log_level"])
@@ -43,6 +61,19 @@ __all__ = [
     "MILVUS_HOST", 
     "MILVUS_PORT", 
     "MILVUS_COLLECTION",
+    "MILVUS_MAX_RETRIES",
+    "MILVUS_INITIAL_DELAY", 
+    "MILVUS_MAX_DELAY",
+    "MILVUS_BACKOFF_FACTOR",
+    "MILVUS_CONNECTION_TIMEOUT",
+    "MILVUS_HEALTH_CHECK_INTERVAL",
+    "MILVUS_DEFAULT_METRIC_TYPE",
+    "MILVUS_CONSISTENCY_LEVEL",
+    "MILVUS_SEARCH_TIMEOUT",
+    "MILVUS_SMALL_DATASET_THRESHOLD",
+    "MILVUS_MEDIUM_DATASET_THRESHOLD",
+    "MILVUS_ENABLE_SEARCH_OPTIMIZATION",
+    "MILVUS_AUTO_INDEX_OPTIMIZATION",
     "MAX_CONTEXT_CHUNKS",
     "TEMPERATURE",
     "LOG_LEVEL",

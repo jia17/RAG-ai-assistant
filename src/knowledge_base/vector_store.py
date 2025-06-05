@@ -2,8 +2,8 @@
 向量存储接口 - 提供统一的向量数据库抽象接口
 """
 
-from typing import List, Dict, Any, Optional, Union
 import time
+from typing import List, Dict, Any, Optional, Union
 import uuid
 from pymilvus import (
     connections, 
@@ -15,13 +15,18 @@ from pymilvus import (
     IndexType,
     MetricType
 )
-from src.config import MILVUS_HOST, MILVUS_PORT, MILVUS_COLLECTION
+from src.config import (
+    MILVUS_HOST, MILVUS_PORT, MILVUS_COLLECTION,
+    MILVUS_DEFAULT_METRIC_TYPE, MILVUS_CONSISTENCY_LEVEL, MILVUS_ENABLE_SEARCH_OPTIMIZATION
+)
+from src.models.connection_manager import get_connection_manager, ensure_connection
+from src.models.search_optimizer import SearchOptimizer
 from src.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
 class VectorStore:
-    """向量存储类，封装Milvus向量数据库操作"""
+    """向量存储类，封装Milvus向量数据库操作 - 优化版本"""
     
     def __init__(self, collection_name: str = None, embedding_dim: int = 384):
         """初始化向量存储
@@ -33,9 +38,12 @@ class VectorStore:
         self.collection_name = collection_name or MILVUS_COLLECTION
         self.embedding_dim = embedding_dim
         self.collection = None
-        self._connected = False
         
-        logger.info(f"VectorStore 初始化，集合: {self.collection_name}, 向量维度: {self.embedding_dim}")
+        # 初始化连接管理器和搜索优化器
+        self.connection_manager = get_connection_manager()
+        self.search_optimizer = SearchOptimizer() if MILVUS_ENABLE_SEARCH_OPTIMIZATION else None
+        
+        logger.info(f"VectorStore 初始化，集合: {self.collection_name}, 向量维度: {self.embedding_dim}, 搜索优化: {MILVUS_ENABLE_SEARCH_OPTIMIZATION}")
     
     def _ensure_connection(self) -> bool:
         """确保Milvus连接建立
@@ -43,30 +51,7 @@ class VectorStore:
         Returns:
             bool: 连接是否成功
         """
-        if self._connected:
-            return True
-            
-        max_retries = 3
-        retry_interval = 2
-        
-        for attempt in range(max_retries):
-            try:
-                connections.connect(
-                    alias="default",
-                    host=MILVUS_HOST,
-                    port=MILVUS_PORT
-                )
-                self._connected = True
-                logger.info(f"已连接到Milvus服务器: {MILVUS_HOST}:{MILVUS_PORT}")
-                return True
-                
-            except Exception as e:
-                logger.warning(f"连接Milvus失败 (尝试 {attempt + 1}/{max_retries}): {e}")
-                if attempt < max_retries - 1:
-                    time.sleep(retry_interval)
-                else:
-                    logger.error(f"连接Milvus服务器失败，已尝试 {max_retries} 次")
-                    return False
+        return ensure_connection()
     
     def create_collection(self) -> bool:
         """创建Milvus集合
@@ -75,6 +60,7 @@ class VectorStore:
             bool: 创建是否成功
         """
         if not self._ensure_connection():
+            logger.error("无法连接到Milvus服务器")
             return False
             
         try:
@@ -119,19 +105,45 @@ class VectorStore:
             return False
     
     def _create_indexes(self):
-        """创建索引"""
+        """创建索引 - 优化版本"""
         try:
-            # 创建向量索引
-            index_params = {
-                "metric_type": MetricType.COSINE,
-                "index_type": IndexType.IVF_FLAT,
-                "params": {"nlist": 1024}
-            }
-            
-            self.collection.create_index(
-                field_name="embedding",
-                index_params=index_params
-            )
+            # 获取优化的索引参数
+            if self.search_optimizer:
+                index_params = self.search_optimizer.get_optimal_index_params(
+                    data_count=None,  # 新集合，使用默认参数
+                    metric_type=MILVUS_DEFAULT_METRIC_TYPE
+                )
+                
+                # 转换为Milvus的MetricType枚举
+                metric_type_map = {
+                    "COSINE": MetricType.COSINE,
+                    "L2": MetricType.L2,
+                    "IP": MetricType.IP
+                }
+                
+                # 创建向量索引
+                self.collection.create_index(
+                    field_name="embedding",
+                    index_params={
+                        "metric_type": metric_type_map.get(index_params["metric_type"], MetricType.COSINE),
+                        "index_type": IndexType.IVF_FLAT,
+                        "params": index_params["params"]
+                    }
+                )
+                logger.info(f"使用优化参数创建向量索引: {index_params}")
+            else:
+                # 使用默认索引参数
+                index_params = {
+                    "metric_type": MetricType.COSINE,
+                    "index_type": IndexType.IVF_FLAT,
+                    "params": {"nlist": 1024}
+                }
+                
+                self.collection.create_index(
+                    field_name="embedding",
+                    index_params=index_params
+                )
+                logger.info(f"使用默认参数创建向量索引")
             
             # 创建标量字段索引
             self.collection.create_index(field_name="source")
@@ -153,6 +165,7 @@ class VectorStore:
             List[str]: 成功添加的文档ID列表
         """
         if not self._ensure_connection():
+            logger.error("无法连接到Milvus服务器")
             return []
             
         if not self.collection:
@@ -200,19 +213,24 @@ class VectorStore:
         self, 
         query_embedding: List[float], 
         top_k: int = 5,
-        filter_expr: str = None
+        filter_expr: str = None,
+        metric_type: str = None
     ) -> List[Dict[str, Any]]:
-        """搜索最相似的文档
+        """搜索最相似的文档 - 优化版本
         
         Args:
             query_embedding: 查询向量
             top_k: 返回结果数量
             filter_expr: 过滤表达式
+            metric_type: 距离度量类型
             
         Returns:
             List[Dict]: 搜索结果列表
         """
+        start_time = time.time()
+        
         if not self._ensure_connection():
+            logger.error("无法连接到Milvus服务器")
             return []
             
         if not self.collection:
@@ -222,21 +240,42 @@ class VectorStore:
         try:
             self.collection.load()
             
-            # 设置搜索参数
-            search_params = {
-                "metric_type": MetricType.COSINE,
-                "params": {"nprobe": 64}
+            # 获取优化的搜索参数
+            if self.search_optimizer:
+                search_params = self.search_optimizer.get_optimal_search_params(
+                    collection=self.collection,
+                    metric_type=metric_type or MILVUS_DEFAULT_METRIC_TYPE,
+                    consistency_level=MILVUS_CONSISTENCY_LEVEL
+                )
+            else:
+                # 使用默认搜索参数
+                search_params = {
+                    "metric_type": metric_type or MILVUS_DEFAULT_METRIC_TYPE,
+                    "params": {"nprobe": 64},
+                    "consistency_level": MILVUS_CONSISTENCY_LEVEL
+                }
+            
+            logger.debug(f"使用搜索参数: {search_params}")
+            
+            # 转换度量类型为Milvus枚举
+            metric_type_map = {
+                "COSINE": MetricType.COSINE,
+                "L2": MetricType.L2,
+                "IP": MetricType.IP
             }
             
             # 执行搜索
             results = self.collection.search(
                 data=[query_embedding],
                 anns_field="embedding",
-                param=search_params,
+                param={
+                    "metric_type": metric_type_map.get(search_params["metric_type"], MetricType.COSINE),
+                    "params": search_params["params"]
+                },
                 limit=top_k,
                 expr=filter_expr,
                 output_fields=["content", "source", "title", "chunk_index", "metadata"],
-                consistency_level="Strong"
+                consistency_level=search_params.get("consistency_level", "Strong")
             )
             
             # 处理搜索结果
@@ -253,7 +292,27 @@ class VectorStore:
                 }
                 documents.append(doc)
             
-            logger.info(f"搜索完成，返回 {len(documents)} 个结果")
+            # 性能监控
+            search_time = time.time() - start_time
+            logger.info(f"搜索完成，返回 {len(documents)} 个结果，耗时: {search_time:.3f}秒")
+            
+            # 记录性能分析（如果启用了搜索优化）
+            if self.search_optimizer:
+                performance_analysis = self.search_optimizer.analyze_search_performance(
+                    search_time=search_time,
+                    result_count=len(documents),
+                    query_limit=top_k
+                )
+                logger.debug(f"搜索性能分析: {performance_analysis}")
+                
+                # 生成优化建议
+                suggestions = self.search_optimizer.suggest_optimization(
+                    performance_analysis=performance_analysis,
+                    current_params=search_params
+                )
+                if suggestions:
+                    logger.info(f"搜索优化建议: {suggestions}")
+            
             return documents
             
         except Exception as e:
