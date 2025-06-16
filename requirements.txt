@@ -16,3 +16,5 @@ sqlalchemy>=2.0.0
 alembic
 psycopg2-binary
 aiosqlite
+# Web搜索依赖
+tavily-python>=0.3.0

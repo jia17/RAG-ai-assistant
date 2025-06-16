@@ -80,6 +80,15 @@ class WebSearchState(TypedDict):
     query: str
     web_results: NotRequired[List[Dict[str, Any]]]
     web_search_success: NotRequired[bool]
+    search_params: NotRequired[Dict[str, Any]]  # 动态搜索参数
+    api_usage: NotRequired[Dict[str, int]]  # API使用统计
+    search_quality_score: NotRequired[float]  # 搜索质量评分
+    fallback_attempted: NotRequired[bool]  # 是否尝试了降级方案
+    cached_results: NotRequired[List[Dict[str, Any]]]  # 缓存的搜索结果
+    search_metadata: NotRequired[Dict[str, Any]]  # 搜索元数据（响应时间、来源等）
+    error_message: NotRequired[str]  # 搜索过程中的错误信息
+    search_type: NotRequired[str]  # 搜索类型 (simple, complex, urgent)
+    bilingual_search_used: NotRequired[bool]  # 是否使用了双语搜索
 
 class ContextManagementState(TypedDict):
     """上下文管理状态"""
